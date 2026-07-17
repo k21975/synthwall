@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a18" />
+  <title>POWERWALL</title>
+  <meta name="description" content="Live solar, battery, and grid energy for Tesla Powerwall systems." />
+
+  <!-- favicons — primary is inlined as a data URI so the browser tab icon works
+       even when /assets/* is behind Cloudflare Access; file links are fallbacks. -->
+  <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,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" />
+  <link rel="icon" type="image/svg+xml" href="/assets/icon.svg" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png" />
+
+  <!-- iOS home-screen web app -->
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Powerwall" />
+  <meta name="application-name" content="Powerwall" />
+  <link rel="manifest" href="/assets/manifest.webmanifest" />
+
+  <!-- link-share preview (Open Graph + Twitter). Image paths are relative;
+       scrapers that require absolute URLs will skip the image, which is the
+       right default for a self-hosted app with no fixed public domain. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Powerwall Dashboard" />
+  <meta property="og:title" content="POWERWALL — Live Energy" />
+  <meta property="og:description" content="Live solar, battery, and grid energy for Tesla Powerwall systems." />
+  <meta property="og:image" content="/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="POWERWALL — Live Energy" />
+  <meta name="twitter:description" content="Live solar, battery, and grid energy for Tesla Powerwall systems." />
+  <meta name="twitter:image" content="/assets/og-image.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=22" />
+</head>
+<body>
+  <!-- synthwave backdrop layers -->
+  <div class="bg-stars"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-sun"></div>
+  <div class="bg-scanlines"></div>
+
+  <header class="topbar">
+    <div class="title-wrap">
+      <!-- text set from /api/settings on boot -->
+      <div class="kicker" id="site-kicker">POWERWALL</div>
+      <h1 class="title" id="site-title">POWERWALL</h1>
+    </div>
+    <button id="settings-btn" class="settings-btn" type="button" title="Settings">⚙ <span class="settings-ver" id="settings-ver">v—</span></button>
+  </header>
+
+  <main>
+    <!-- System selector (COMBINED + one per gateway, rendered from
+         /api/settings); the whole bar hides for single-gateway systems -->
+    <section class="controls" id="sys-controls">
+      <div class="seg" id="sys-seg"></div>
+    </section>
+
+    <!-- LIVE — collapsible, hidden by default -->
+    <section class="sec">
+      <div class="sec-head">
+        <button type="button" class="sec-toggle" id="live-toggle" aria-expanded="false"><span class="sec-arrow">▸</span>LIVE</button>
+        <div class="sec-extras">
+          <span id="conn-dot" class="dot"></span>
+          <span id="clock" class="clock"></span>
+          <label class="refresh-rate" title="Auto-refresh rate">
+            <span class="refresh-ico">⟳</span>
+            <select id="refresh-select" aria-label="Auto-refresh rate">
+              <option value="5000">5s</option>
+              <option value="10000">10s</option>
+              <option value="30000">30s</option>
+              <option value="60000">1m</option>
+              <option value="300000">5m</option>
+              <option value="0">Off</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="sec-body" id="live-body" hidden>
+        <!-- Live power flow tiles -->
+        <div class="tiles" id="live-tiles">
+          <div class="tile tile-solar" data-k="solar">
+            <div class="tile-label">SOLAR</div>
+            <div class="tile-value"><span class="num">--</span><span class="unit">kW</span></div>
+            <div class="tile-sub">generating</div>
+          </div>
+          <div class="tile tile-home" data-k="home">
+            <div class="tile-label">HOME</div>
+            <div class="tile-value"><span class="num">--</span><span class="unit">kW</span></div>
+            <div class="tile-sub">consuming</div>
+          </div>
+          <div class="tile tile-grid" data-k="grid">
+            <div class="tile-label">GRID</div>
+            <div class="tile-value"><span class="num">--</span><span class="unit">kW</span></div>
+            <div class="tile-sub">idle</div>
+          </div>
+          <div class="tile tile-battery" data-k="battery">
+            <div class="tile-label">BATTERY</div>
+            <div class="tile-value"><span class="num">--</span><span class="unit">kW</span></div>
+            <div class="tile-sub">idle</div>
+            <div class="soc-bar"><div class="soc-fill" id="soc-fill"></div><span class="soc-text" id="soc-text">--%</span></div>
+          </div>
+          <div class="tile tile-self" data-k="self">
+            <div class="tile-label">SELF-POWERED</div>
+            <div class="tile-value"><span class="num">--</span><span class="unit">%</span></div>
+            <div class="tile-sub">solar + battery</div>
+          </div>
+        </div>
+
+        <!-- One expandable panel for whichever LIVE tile is open: the
+             per-gateway cards (BATTERY) or a per-gateway/charger tile row -->
+        <div class="split-wrap" id="live-wrap" hidden>
+          <div class="panels" id="panels" hidden></div>
+          <div class="tiles split-tiles" id="live-split" hidden></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORY — collapsible, open by default; dropdown drives it all -->
+    <section class="sec">
+      <div class="sec-head">
+        <button type="button" class="sec-toggle" id="period-toggle" aria-expanded="true"><span class="sec-arrow">▾</span>HISTORY</button>
+        <div class="seg range-bar">
+          <label class="range-pick">
+            <span class="range-ico">◷</span>
+            <select id="range-select" aria-label="Time range">
+              <option value="today" selected>TODAY</option>
+              <option value="24h">LAST 24H</option>
+              <option value="7d">LAST 7 DAYS</option>
+              <option value="month">MONTH TO DATE</option>
+              <option value="30d">LAST 30 DAYS</option>
+              <option value="year">YEAR TO DATE</option>
+              <option value="billing">BILLING PERIOD</option>
+              <option value="lifetime">LIFETIME</option>
+              <option value="custom">CUSTOM…</option>
+            </select>
+          </label>
+          <span id="custom-range" class="custom-range" hidden>
+            <input type="date" id="custom-start" aria-label="Start date" />
+            <span class="custom-sep">→</span>
+            <input type="date" id="custom-end" aria-label="End date" />
+            <button type="button" id="custom-go">GO</button>
+          </span>
+        </div>
+      </div>
+      <div class="sec-body" id="period-body">
+        <!-- Headline: solar made vs total home used (incl. car) over the period -->
+        <section class="balance card" id="balance">
+          <div class="bal-head"><span id="bal-range">24H</span></div>
+          <div class="bal-cols">
+            <div class="bal-metric" id="bal-solar-box">
+              <div class="bal-label">SOLAR MADE</div>
+              <div class="bal-val solar"><span id="bal-solar">--</span> <i>kWh</i></div>
+            </div>
+            <div class="bal-metric" id="bal-home-box">
+              <div class="bal-label">HOME USED</div>
+              <div class="bal-val home"><span id="bal-home">--</span> <i>kWh</i></div>
+              <div class="bal-sub">car + house</div>
+            </div>
+            <div class="bal-metric bal-net" id="bal-net-box">
+              <div class="bal-label">NET</div>
+              <div class="bal-val"><span id="bal-net">--</span> <i>kWh</i></div>
+              <div class="bal-flag" id="bal-flag">—</div>
+            </div>
+          </div>
+          <!-- expandable panel for whichever balance tile is open -->
+          <div class="split-wrap" id="bal-wrap" hidden>
+            <div class="tiles split-tiles" id="bal-split"></div>
+          </div>
+        </section>
+
+        <!-- Cumulative: solar made vs home used over the period -->
+        <section class="charts">
+          <div class="card chart-card wide">
+            <div class="card-head"><h2>SOLAR vs USAGE · CUMULATIVE</h2><div class="legend" id="cumulative-legend"></div></div>
+            <canvas id="chart-cumulative"></canvas>
+          </div>
+        </section>
+
+        <!-- Period energy totals -->
+        <section class="totals" id="totals">
+          <div class="stat" data-k="solar"><div class="stat-label">SOLAR</div><div class="stat-val">-- <i>kWh</i></div></div>
+          <div class="stat" data-k="home"><div class="stat-label">HOME</div><div class="stat-val">-- <i>kWh</i></div></div>
+          <div class="stat" data-k="from_grid"><div class="stat-label">GRID IN</div><div class="stat-val">-- <i>kWh</i></div></div>
+          <div class="stat" data-k="to_grid"><div class="stat-label">GRID OUT</div><div class="stat-val">-- <i>kWh</i></div></div>
+          <div class="stat" data-k="from_pw"><div class="stat-label">BATT OUT</div><div class="stat-val">-- <i>kWh</i></div></div>
+          <div class="stat" data-k="self_sufficiency"><div class="stat-label">SELF-POWERED</div><div class="stat-val">-- <i>%</i></div></div>
+          <div class="stat" data-k="savings"><div class="stat-label">SAVINGS</div><div class="stat-val">-- <i>$</i></div></div>
+        </section>
+
+        <!-- expandable panel for whichever totals stat is open -->
+        <div class="split-wrap" id="stats-wrap" hidden>
+          <div class="tiles split-tiles" id="stats-split"></div>
+        </div>
+
+        <!-- Charts -->
+        <section class="charts">
+          <div class="card chart-card">
+            <div class="card-head"><h2>POWER FLOW</h2><div class="legend" id="power-legend"></div></div>
+            <canvas id="chart-power"></canvas>
+          </div>
+          <div class="card chart-card">
+            <div class="card-head"><h2>BATTERY CHARGE</h2></div>
+            <canvas id="chart-soc"></canvas>
+          </div>
+        </section>
+
+      </div>
+    </section>
+
+    <!-- MONTHLY — collapsible; 6-month window, ◂ ▸ pages through older months -->
+    <section class="sec">
+      <div class="sec-head">
+        <button type="button" class="sec-toggle" id="monthly-toggle" aria-expanded="true"><span class="sec-arrow">▾</span>MONTHLY</button>
+        <div class="sec-extras">
+          <div class="seg month-pager">
+            <button type="button" id="month-prev" aria-label="Older months">◂</button>
+            <span id="month-label" class="month-range">—</span>
+            <button type="button" id="month-next" aria-label="Newer months">▸</button>
+          </div>
+        </div>
+      </div>
+      <div class="sec-body" id="monthly-body">
+        <section class="charts">
+          <div class="card chart-card wide">
+            <div class="card-head"><h2>MONTHLY ENERGY</h2><div class="legend" id="monthly-legend"></div></div>
+            <canvas id="chart-monthly"></canvas>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>POWERWALL DASHBOARD</span>
+    <span id="last-update">—</span>
+  </footer>
+
+  <!-- Settings modal -->
+  <div id="settings-modal" class="modal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>SETTINGS</h2>
+        <button id="settings-close" class="modal-close" type="button" aria-label="Close">✕</button>
+      </div>
+      <form id="settings-form" class="settings-form">
+        <label class="sf-field">
+          <span class="sf-label">SITE NAME</span>
+          <input type="text" id="sf-site-name" maxlength="32" required />
+        </label>
+        <label class="sf-field">
+          <span class="sf-label">TAGLINE</span>
+          <input type="text" id="sf-tagline" maxlength="64" />
+        </label>
+        <div class="sf-row">
+          <label class="sf-field">
+            <span class="sf-label">HOUSE TIMEZONE</span>
+            <select id="sf-timezone" required><!-- options filled by JS --></select>
+          </label>
+          <label class="sf-field">
+            <span class="sf-label">SHOW TIMES IN</span>
+            <select id="sf-time-display">
+              <option value="local">MY LOCAL TIME</option>
+              <option value="house">HOUSE TIME</option>
+            </select>
+          </label>
+        </div>
+        <div class="sf-row">
+          <label class="sf-field">
+            <span class="sf-label">IMPORT RATE $/kWh</span>
+            <input type="number" id="sf-rate-import" min="0" max="10" step="0.00001" required />
+          </label>
+          <label class="sf-field">
+            <span class="sf-label">EXPORT RATE $/kWh</span>
+            <input type="number" id="sf-rate-export" min="0" max="10" step="0.00001" required />
+          </label>
+        </div>
+        <label class="sf-field">
+          <span class="sf-label">BILLING CYCLE START DAY (1-28)</span>
+          <input type="number" id="sf-billing-day" min="1" max="28" step="1" required />
+        </label>
+        <div id="sf-gateways"><!-- one row per gateway, rendered by JS --></div>
+        <div class="sf-error" id="sf-error" hidden></div>
+        <div class="sf-actions">
+          <button type="button" id="sf-reset" class="sf-btn">RESET TO DEFAULTS</button>
+          <button type="submit" id="sf-save" class="sf-btn sf-primary">SAVE</button>
+        </div>
+      </form>
+      <div class="sf-version">
+        <button id="version" type="button" title="Version history">v—</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Version history modal -->
+  <div id="ver-modal" class="modal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>VERSION HISTORY</h2>
+        <button id="ver-close" class="modal-close" type="button" aria-label="Close">✕</button>
+      </div>
+      <div id="ver-list" class="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="charts.js?v=11"></script>
+  <script src="app.js?v=25"></script>
+</body>
+</html>

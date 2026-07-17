@@ -1,0 +1,8 @@
+# telegraf.local — user overrides loaded after telegraf.conf
+# Add extra inputs, outputs, or processors here without modifying telegraf.conf.
+# This file is loaded by: telegraf --config telegraf.conf --config telegraf.local
+
+# Example: add a second InfluxDB output for remote backup
+# [[outputs.influxdb]]
+#   urls = ["http://remote-influxdb:8086"]
+#   database = "powerwall_backup"

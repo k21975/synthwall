@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a0b3a"/>
+      <stop offset="0.5" stop-color="#0a0820"/>
+      <stop offset="1" stop-color="#07060f"/>
+    </linearGradient>
+    <radialGradient id="sunGlow" cx="0.5" cy="0.78" r="0.6">
+      <stop offset="0" stop-color="#ff2e97" stop-opacity="0.55"/>
+      <stop offset="0.45" stop-color="#b14aed" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#b14aed" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe97a"/>
+      <stop offset="0.45" stop-color="#ffd319"/>
+      <stop offset="0.75" stop-color="#ff2e97"/>
+      <stop offset="1" stop-color="#b14aed"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#d6e6ff"/>
+      <stop offset="0.35" stop-color="#00f0ff"/>
+      <stop offset="0.7" stop-color="#b14aed"/>
+      <stop offset="1" stop-color="#ff2e97"/>
+    </linearGradient>
+    <!-- stripe mask: hides horizontal bands across the lower half of the sun -->
+    <mask id="sunStripes">
+      <rect x="0" y="0" width="512" height="512" fill="#fff"/>
+      <g fill="#000">
+        <rect x="0" y="196" width="512" height="6"/>
+        <rect x="0" y="212" width="512" height="8"/>
+        <rect x="0" y="232" width="512" height="10"/>
+        <rect x="0" y="256" width="512" height="12"/>
+        <rect x="0" y="284" width="512" height="14"/>
+      </g>
+    </mask>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="96" fill="url(#sunGlow)"/>
+
+  <!-- retro sun -->
+  <circle cx="256" cy="172" r="118" fill="url(#sun)" mask="url(#sunStripes)"/>
+
+  <!-- perspective neon grid floor -->
+  <g stroke="#00f0ff" stroke-opacity="0.5" stroke-width="2.4" filter="url(#softglow)">
+    <line x1="256" y1="330" x2="-40" y2="500"/>
+    <line x1="256" y1="330" x2="120" y2="500"/>
+    <line x1="256" y1="330" x2="256" y2="500"/>
+    <line x1="256" y1="330" x2="392" y2="500"/>
+    <line x1="256" y1="330" x2="552" y2="500"/>
+  </g>
+  <g stroke="#b14aed" stroke-opacity="0.45" stroke-width="2.4" filter="url(#softglow)">
+    <line x1="70" y1="360" x2="442" y2="360"/>
+    <line x1="36" y1="392" x2="476" y2="392"/>
+    <line x1="0" y1="430" x2="512" y2="430"/>
+    <line x1="0" y1="474" x2="512" y2="474"/>
+  </g>
+
+  <!-- lightning bolt -->
+  <path d="M300 64 L158 296 L246 296 L210 452 L366 240 L280 240 L326 64 Z"
+        fill="url(#bolt)" stroke="#eafcff" stroke-width="4"
+        stroke-linejoin="round" filter="url(#glow)"/>
+</svg>

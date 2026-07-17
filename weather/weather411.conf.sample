@@ -1,0 +1,37 @@
+[Weather411]
+# weather411.conf.sample — OpenWeatherMap → InfluxDB bridge (optional service)
+# Copy to weather411.conf and fill in your API key + coordinates, or let
+# setup.sh do it. Do NOT commit weather411.conf to version control.
+# Free API key: https://openweathermap.org/api
+# Enable weather service with: docker compose -f powerwall.yml --profile weather up -d weather411
+DEBUG = no
+
+[API]
+# Port to listen on for requests (default 8676)
+ENABLE = yes
+PORT = 8676
+
+[OpenWeatherMap]
+APIKEY = your_openweathermap_api_key_here
+# Location (decimal degrees) — match the Sun and Moon datasource if used
+LAT = 37.7749
+LON = -122.4194
+WAIT = 10
+TIMEOUT = 10
+# standard, metric or imperial
+UNITS = imperial
+
+[InfluxDB]
+# Record data in InfluxDB server
+ENABLE = yes
+HOST = influxdb
+PORT = 8086
+DB = powerwall
+FIELD = weather
+# Auth - Leave blank if not used
+USERNAME =
+PASSWORD =
+# Influx 2.x - Leave blank if not used
+TOKEN =
+ORG =
+URL =

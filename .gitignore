@@ -1,0 +1,37 @@
+# Credentials / site-specific config — never commit these
+compose.env
+pypowerwall-*.env
+influxdb.env
+grafana.env
+gateways.json
+weather/weather411.conf
+weather/weather411.conf.orig
+auth/
+.auth/
+*.pem
+*.bak
+*.orig
+
+# NOTE: powerwall.yml, telegraf/telegraf.conf, and grafana/dashboards/*.json
+# are GENERATED (tools/generate_stack.py via ./setup.sh -g). The repo ships a
+# 2-gateway default; your regenerated copies will differ — that's expected.
+
+# Backups / archives
+backups/
+*.tgz
+
+# Persistent data volumes (includes data/webapp/settings.json)
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# macOS
+.DS_Store
+
+# Editor / local tooling settings
+.vscode/
+.idea/
+.claude/settings.local.json
