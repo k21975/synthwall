@@ -390,8 +390,11 @@ main {
 }
 .sec-head .refresh-rate { padding: 5px 10px; }
 
-/* monthly ◂ ▸ pager */
-.month-pager { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; }
+/* monthly ◂ ▸ pager — never wrap: ◂ label ▸ stay on one line */
+.month-pager {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px;
+  flex-wrap: nowrap;
+}
 .month-pager button { padding: 4px 10px; font-size: 13px; }
 .month-pager button:disabled { opacity: 0.35; cursor: default; }
 .month-range {
@@ -582,6 +585,9 @@ main {
   /* narrow screens: keep one row — toggle left, controls right */
   .sec-head { grid-template-columns: auto 1fr; }
   .sec-head > :not(.sec-toggle) { justify-self: end; }
+  .month-pager { padding: 3px 4px; gap: 2px; }
+  .month-pager button { padding: 4px 7px; font-size: 12px; }
+  .month-range { font-size: 10px; letter-spacing: 0.08em; padding: 0 2px; }
 }
 
 .flash { animation: flash 0.5s ease; }

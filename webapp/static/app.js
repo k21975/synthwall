@@ -2,10 +2,11 @@
 (function () {
   "use strict";
 
-  const VERSION = "2.38";
+  const VERSION = "2.39";
 
   // Most-recent first. Shown in the version-history modal.
   const CHANGELOG = [
+    ["2.39", "Monthly pager stays on one line on phones (the ▸ was wrapping underneath)."],
     ["2.38", "Monthly pager shows just the month names (FEB – JUL)."],
     ["2.37", "Settings: charger names moved to their own CHARGERS section, apart from panel name/capacity."],
     ["2.36", "Home splits show PANEL A / PANEL B / CHARGER 1 / CHARGER 2; chargers renamable in settings; monthly label no longer reads like a date."],
