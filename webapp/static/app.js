@@ -777,6 +777,10 @@
       $("#sf-rate-export").value = s.rate_export;
       const wrap = $("#sf-gateways");
       wrap.innerHTML = "";
+      const phd = document.createElement("div");
+      phd.className = "sf-heading";
+      phd.textContent = "PANELS";
+      wrap.appendChild(phd);
       for (const gw of s.gateways) {
         const row = document.createElement("div");
         row.className = "sf-row";
