@@ -315,8 +315,9 @@ main {
   color: #fff; text-shadow: 0 0 4px #000;
 }
 
-/* house vs charger split rows */
-.tiles.split-tiles { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+/* house vs charger split rows — 110px min keeps tiles side-by-side even in
+   the padded balance card on phones (stacked reads worse than snug) */
+.tiles.split-tiles { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; }
 .tile-charger { --accent: var(--purple); }
 
 /* compact variant for tiles inside a split row */
@@ -588,6 +589,8 @@ main {
   .month-pager { padding: 3px 4px; gap: 2px; }
   .month-pager button { padding: 4px 7px; font-size: 12px; }
   .month-range { font-size: 10px; letter-spacing: 0.08em; padding: 0 2px; }
+  .tiles.split-tiles { gap: 8px; }
+  .split-tiles .tile { padding: 9px 10px 10px; }
 }
 
 .flash { animation: flash 0.5s ease; }

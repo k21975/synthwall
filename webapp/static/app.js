@@ -2,10 +2,11 @@
 (function () {
   "use strict";
 
-  const VERSION = "2.39";
+  const VERSION = "2.40";
 
   // Most-recent first. Shown in the version-history modal.
   const CHANGELOG = [
+    ["2.40", "Split tiles stay side-by-side on phones instead of stacking."],
     ["2.39", "Monthly pager stays on one line on phones (the ▸ was wrapping underneath)."],
     ["2.38", "Monthly pager shows just the month names (FEB – JUL)."],
     ["2.37", "Settings: charger names moved to their own CHARGERS section, apart from panel name/capacity."],
