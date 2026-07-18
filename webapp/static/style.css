@@ -207,7 +207,11 @@ main {
 /* ---------- settings form ---------- */
 .settings-form { display: flex; flex-direction: column; gap: 12px; }
 .sf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.sf-row-3 { grid-template-columns: 1fr 1fr 0.7fr; }
+.sf-heading {
+  font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 0.18em;
+  color: var(--cyan); border-top: 1px solid var(--line);
+  padding-top: 12px; margin-top: 2px;
+}
 .sf-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .sf-label {
   font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 0.18em;

@@ -2,10 +2,11 @@
 (function () {
   "use strict";
 
-  const VERSION = "2.36";
+  const VERSION = "2.37";
 
   // Most-recent first. Shown in the version-history modal.
   const CHANGELOG = [
+    ["2.37", "Settings: charger names moved to their own CHARGERS section, apart from panel name/capacity."],
     ["2.36", "Home splits show PANEL A / PANEL B / CHARGER 1 / CHARGER 2; chargers renamable in settings; monthly label no longer reads like a date."],
     ["2.35", "Tile split panels open directly below the tile you tapped (they were parked at the bottom of the section — easy to miss on phones)."],
     ["2.34", "Phone: section controls sit beside the LIVE/HISTORY buttons instead of below; settings version link is a proper button."],
@@ -802,25 +803,43 @@
       $("#sf-rate-export").value = s.rate_export;
       const wrap = $("#sf-gateways");
       wrap.innerHTML = "";
-      s.gateways.forEach((gw, i) => {
+      for (const gw of s.gateways) {
         const row = document.createElement("div");
-        row.className = "sf-row sf-row-3";
+        row.className = "sf-row";
         row.innerHTML =
           '<label class="sf-field"><span class="sf-label"></span>' +
           '<input type="text" class="sf-gw-label" maxlength="24" required /></label>' +
-          '<label class="sf-field"><span class="sf-label sf-chg-label"></span>' +
-          '<input type="text" class="sf-gw-charger" maxlength="24" required /></label>' +
           '<label class="sf-field"><span class="sf-label">CAPACITY kWh</span>' +
           '<input type="number" class="sf-gw-cap" min="0.1" max="1000" step="0.1" required /></label>';
         row.querySelector(".sf-label").textContent = gw.tag.replace("_", " ").toUpperCase() + " LABEL";
-        row.querySelector(".sf-chg-label").textContent = "CHARGER " + (i + 1) + " LABEL";
         const lbl = row.querySelector(".sf-gw-label");
         lbl.value = gw.label;
         lbl.dataset.tag = gw.tag;
-        row.querySelector(".sf-gw-charger").value = gw.charger_label || "CHARGER " + (i + 1);
         row.querySelector(".sf-gw-cap").value = gw.capacity_kwh;
         wrap.appendChild(row);
+      }
+
+      // chargers get their own section, apart from the panel name/capacity
+      const hd = document.createElement("div");
+      hd.className = "sf-heading";
+      hd.textContent = "CHARGERS";
+      wrap.appendChild(hd);
+      const crow = document.createElement("div");
+      crow.className = "sf-row";
+      crow.style.gridTemplateColumns = `repeat(${s.gateways.length}, 1fr)`;
+      s.gateways.forEach((gw, i) => {
+        const f = document.createElement("label");
+        f.className = "sf-field";
+        f.innerHTML =
+          '<span class="sf-label"></span>' +
+          '<input type="text" class="sf-gw-charger" maxlength="24" required />';
+        f.querySelector(".sf-label").textContent = "CHARGER " + (i + 1) + " NAME";
+        const inp = f.querySelector(".sf-gw-charger");
+        inp.value = gw.charger_label || "CHARGER " + (i + 1);
+        inp.dataset.tag = gw.tag;
+        crow.appendChild(f);
       });
+      wrap.appendChild(crow);
     }
 
     const open = () => { fill(SETTINGS); err.hidden = true; modal.hidden = false; };
@@ -842,12 +861,16 @@
         billing_day: Number($("#sf-billing-day").value),
         rate_import: Number($("#sf-rate-import").value),
         rate_export: Number($("#sf-rate-export").value),
-        gateways: $$("#sf-gateways .sf-gw-label").map(inp => ({
-          tag: inp.dataset.tag,
-          label: inp.value.trim(),
-          charger_label: inp.closest(".sf-row").querySelector(".sf-gw-charger").value.trim(),
-          capacity_kwh: Number(inp.closest(".sf-row").querySelector(".sf-gw-cap").value),
-        })),
+        gateways: $$("#sf-gateways .sf-gw-label").map(inp => {
+          const chg = $$("#sf-gateways .sf-gw-charger")
+            .find(c => c.dataset.tag === inp.dataset.tag);
+          return {
+            tag: inp.dataset.tag,
+            label: inp.value.trim(),
+            charger_label: chg ? chg.value.trim() : "",
+            capacity_kwh: Number(inp.closest(".sf-row").querySelector(".sf-gw-cap").value),
+          };
+        }),
       };
       save.disabled = true; save.textContent = "SAVING…"; err.hidden = true;
       try {
