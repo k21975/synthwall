@@ -2,39 +2,15 @@
 (function () {
   "use strict";
 
-  const VERSION = "2.40";
+  const VERSION = "2.4";
 
   // Most-recent first. Shown in the version-history modal.
+  // Tenth-point releases only; notes consolidated.
   const CHANGELOG = [
-    ["2.40", "Split tiles stay side-by-side on phones instead of stacking."],
-    ["2.39", "Monthly pager stays on one line on phones (the ▸ was wrapping underneath)."],
-    ["2.38", "Monthly pager shows just the month names (FEB – JUL)."],
-    ["2.37", "Settings: charger names moved to their own CHARGERS section, apart from panel name/capacity."],
-    ["2.36", "Home splits show PANEL A / PANEL B / CHARGER 1 / CHARGER 2; chargers renamable in settings; monthly label no longer reads like a date."],
-    ["2.35", "Tile split panels open directly below the tile you tapped (they were parked at the bottom of the section — easy to miss on phones)."],
-    ["2.34", "Phone: section controls sit beside the LIVE/HISTORY buttons instead of below; settings version link is a proper button."],
-    ["2.33", "MONTHLY ENERGY moved to its own section: 6 months at a time, ◂ ▸ to page back through older months."],
-    ["2.32", "Every LIVE/HISTORY tile expands a per-panel breakdown (one open at a time; most need COMBINED); version shown on the gear; THIS PERIOD renamed HISTORY."],
-    ["2.31", "Split rows are compact and visually attached to their tile; live split opens from the HOME tile; BATTERY tile shows/hides the panel cards."],
-    ["2.30", "HOME split into HOME / CHARGER 1 / CHARGER 2: live row under the panel cards, and a period row that opens by pressing HOME USED."],
-    ["2.29", "Section headers: LIVE / THIS PERIOD buttons stay left; clock, refresh, and range picker center in the row."],
-    ["2.28", "Boxed LIVE / THIS PERIOD sections, left-aligned toggles, status dot by the clock, bigger gear in the header, un-clipped title descenders."],
-    ["2.27", "MONTHLY ENERGY was frozen at May — now computed live per calendar month (the old rollups used 30-day buckets with no live combined feed)."],
-    ["2.26", "Clock + refresh rate moved next to the LIVE button; system bar sits on the page background; bigger gear on desktop."],
-    ["2.25", "Live tiles (and panel cards) moved to a collapsible LIVE section up top, hidden by default; THIS PERIOD collapses too."],
-    ["2.24", "Merged the version button into settings — it now lives at the bottom of the settings panel."],
-    ["2.23", "Range dropdown with BILLING PERIOD, LIFETIME, and custom dates; times shown in house or local timezone (settings)."],
-    ["2.22", "Settings page (gear icon): site name, panel labels, rates, capacities, timezone — applied live. Supports 1-3 gateways."],
-    ["2.21", "Chart time labels land on round times (2h/4h/…) and fit the screen width."],
-    ["2.20", "The phone web app now notices new versions and reloads itself (was caching forever)."],
-    ["2.19", "Spaced out the big digits — narrow 1s were merging into neighbors (17 read like Π)."],
-    ["2.18", "Removed the unreliable house/car split — HOME USED is the total (car + house)."],
-    ["2.17", "Backfilled Feb–May history from the Tesla app; version history; sticky range/system bar."],
-    ["2.16", "Refresh dropdown now controls the whole dashboard (Off freezes it)."],
-    ["2.15", "Today / Month / Year (to-date) ranges; centered top bar."],
-    ["2.14", "Custom site name; tightened the mobile header."],
-    ["2.13", "Added the version label and auto-refresh control."],
-    ["2.12", "Solar-vs-usage balance card + cumulative chart; fixed self-powered %."],
+    ["2.4", "Every tile expands a breakdown panel right below it (one at a time): per-panel splits on COMBINED, home split into panels + renamable chargers. MONTHLY gets its own section — 6 months at a time with ◂ ▸ paging. Phone layout polish: side-by-side tiles, one-line headers."],
+    ["2.3", "Collapsible LIVE / HISTORY / MONTHLY sections in boxed layout with live tiles up top; clock + refresh next to LIVE. Monthly chart rebuilt on true calendar months (it had frozen). Version history lives in settings; version shown on the gear."],
+    ["2.2", "Settings page (gear): site name, panel labels, rates, capacities, timezone — applied live, 1-3 gateways. Ranges: billing period, lifetime, custom dates; house or local time display. Phone app updates itself; chart time labels land on round times."],
+    ["2.1", "Solar-vs-usage balance card + cumulative chart; today/month/year ranges; auto-refresh control; custom site name; Feb–May history backfilled from the Tesla app; HOME USED = car + house."],
   ];
 
   const C = {
