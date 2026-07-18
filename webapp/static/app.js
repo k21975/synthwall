@@ -2,10 +2,11 @@
 (function () {
   "use strict";
 
-  const VERSION = "2.37";
+  const VERSION = "2.38";
 
   // Most-recent first. Shown in the version-history modal.
   const CHANGELOG = [
+    ["2.38", "Monthly pager shows just the month names (FEB – JUL)."],
     ["2.37", "Settings: charger names moved to their own CHARGERS section, apart from panel name/capacity."],
     ["2.36", "Home splits show PANEL A / PANEL B / CHARGER 1 / CHARGER 2; chargers renamable in settings; monthly label no longer reads like a date."],
     ["2.35", "Tile split panels open directly below the tile you tapped (they were parked at the bottom of the section — easy to miss on phones)."],
@@ -564,14 +565,9 @@
     if (prev) prev.disabled = monthOffset >= maxOff;
     if (next) next.disabled = monthOffset === 0;
     if (lbl && rows.length) {
-      // month names only — a 2-digit year suffix read like a day of month
-      const f = (r, opts) => new Date(r.ts)
-        .toLocaleDateString([], { ...opts, timeZone: dispTZ() }).toUpperCase();
-      const a = rows[0], b = rows[rows.length - 1];
-      const ya = f(a, { year: "numeric" }), yb = f(b, { year: "numeric" });
-      lbl.textContent = (ya === yb)
-        ? `${f(a, { month: "short" })} – ${f(b, { month: "short" })} ${yb}`
-        : `${f(a, { month: "short" })} ${ya} – ${f(b, { month: "short" })} ${yb}`;
+      const mon = r => new Date(r.ts)
+        .toLocaleDateString([], { month: "short", timeZone: dispTZ() }).toUpperCase();
+      lbl.textContent = `${mon(rows[0])} – ${mon(rows[rows.length - 1])}`;
     }
 
     const labels = rows.map(r => new Date(r.ts).toLocaleDateString([], { month: "short", timeZone: dispTZ() }));
