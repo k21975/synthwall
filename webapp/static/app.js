@@ -2,10 +2,12 @@
 (function () {
   "use strict";
 
-  const VERSION = "2.34";
+  const VERSION = "2.36";
 
   // Most-recent first. Shown in the version-history modal.
   const CHANGELOG = [
+    ["2.36", "Home splits show PANEL A / PANEL B / CHARGER 1 / CHARGER 2; chargers renamable in settings; monthly label no longer reads like a date."],
+    ["2.35", "Tile split panels open directly below the tile you tapped (they were parked at the bottom of the section — easy to miss on phones)."],
     ["2.34", "Phone: section controls sit beside the LIVE/HISTORY buttons instead of below; settings version link is a proper button."],
     ["2.33", "MONTHLY ENERGY moved to its own section: 6 months at a time, ◂ ▸ to page back through older months."],
     ["2.32", "Every LIVE/HISTORY tile expands a per-panel breakdown (one open at a time; most need COMBINED); version shown on the gear; THIS PERIOD renamed HISTORY."],
@@ -212,39 +214,54 @@
     }));
   }
 
+  function chargerLabel(gw) {
+    return gw.charger_label || "CHARGER " + (SETTINGS.gateways.indexOf(gw) + 1);
+  }
+
+  // Split home into per-panel house-only loads + one tile per charger:
+  // PANEL A, PANEL B, CHARGER 1, CHARGER 2 (scoped to the selected system).
   function liveHouseItems() {
-    const sys = lastLive && (lastLive.systems[system] || lastLive.systems.combined);
-    if (!sys) return [];
-    let evSum = 0;
-    const items = splitGateways().map(gw => {
-      const p = lastLive.systems[gw.tag];
-      const ev = p ? (p.ev_load || 0) : 0;
-      evSum += ev;
-      return { key: "chg_" + gw.tag,
-               label: "CHARGER " + (SETTINGS.gateways.indexOf(gw) + 1),
-               unit: "kW", accent: C.battery,
-               val: fmtKw(ev), sub: ev > 100 ? "charging" : "idle" };
-    });
-    items.unshift({ key: "house", label: "HOME", unit: "kW", accent: C.home,
-                    val: fmtKw(Math.max(sys.home - evSum, 0)), sub: "house only" });
-    return items;
+    if (!lastLive) return [];
+    const gws = splitGateways();
+    const part = gw => {
+      const p = lastLive.systems[gw.tag] || {};
+      const home = p.home || 0;
+      // live EV estimate can overcount — never let a charger exceed its panel
+      const ev = Math.min(Math.max(p.ev_load || 0, 0), home);
+      return { home, ev };
+    };
+    return [
+      ...gws.map(gw => ({ key: "house_" + gw.tag, label: gw.label,
+                          unit: "kW", accent: C.home,
+                          val: fmtKw(Math.max(part(gw).home - part(gw).ev, 0)),
+                          sub: "house only" })),
+      ...gws.map(gw => {
+        const { ev } = part(gw);
+        return { key: "chg_" + gw.tag, label: chargerLabel(gw),
+                 unit: "kW", accent: C.battery,
+                 val: fmtKw(ev), sub: ev > 100 ? "charging" : "idle" };
+      }),
+    ];
   }
 
   function periodHouseItems() {
     if (!lastTotals) return [];
-    const t = lastTotals.totals, chargers = t.chargers || {};
-    let evSum = 0;
-    const items = splitGateways().map(gw => {
-      // live EV estimate can overcount — never let a charger exceed home
-      const v = Math.min(chargers[gw.tag] || 0, Math.max(t.home - evSum, 0));
-      evSum += v;
-      return { key: "chg_" + gw.tag,
-               label: "CHARGER " + (SETTINGS.gateways.indexOf(gw) + 1),
-               unit: "kWh", accent: C.battery, val: fmt1(v) };
-    });
-    items.unshift({ key: "house", label: "HOME", unit: "kWh", accent: C.home,
-                    val: fmt1(Math.max(t.home - evSum, 0)), sub: "house only" });
-    return items;
+    const by = lastTotals.by_system || {};
+    const chargers = lastTotals.totals.chargers || {};
+    const gws = splitGateways();
+    const part = gw => {
+      const home = (by[gw.tag] || {}).home || 0;
+      const ev = Math.min(chargers[gw.tag] || 0, home);
+      return { home, ev };
+    };
+    return [
+      ...gws.map(gw => ({ key: "house_" + gw.tag, label: gw.label,
+                          unit: "kWh", accent: C.home,
+                          val: fmt1(Math.max(part(gw).home - part(gw).ev, 0)),
+                          sub: "house only" })),
+      ...gws.map(gw => ({ key: "chg_" + gw.tag, label: chargerLabel(gw),
+                          unit: "kWh", accent: C.battery, val: fmt1(part(gw).ev) })),
+    ];
   }
 
   // comb: split only offered on COMBINED. panels: shows the gateway cards.
@@ -312,6 +329,16 @@
     }
   }
 
+  // Re-home the wrap inside the tile grid, on its own full-width row directly
+  // below the clicked tile's row (phones stack tiles 1-2 per row, so panels
+  // parked at the end of the section went unnoticed).
+  function placeWrap(wrap, tile) {
+    const rowEls = Array.from(tile.parentElement.children).filter(el =>
+      el !== wrap && Math.abs(el.offsetTop - tile.offsetTop) < 2);
+    const anchor = rowEls[rowEls.length - 1] || tile;
+    if (anchor.nextElementSibling !== wrap) anchor.after(wrap);
+  }
+
   function syncSplits() {
     if (!SETTINGS) return;
     for (const [id, def] of Object.entries(SPLITS)) {
@@ -336,6 +363,7 @@
       wrap.hidden = !on;
       if (area === "live") $("#panels").hidden = !(on && def && def.panels);
       if (!on) continue;
+      placeWrap(wrap, $(def.tile));
       cont.hidden = !!def.panels;
       wrap.style.setProperty("--sw", def.accent);
       if (def.items) renderSplitItems(cont, def.items());
@@ -355,6 +383,9 @@
         activeSplit = activeSplit === id ? "" : id;
         localStorage.setItem("activeSplit", activeSplit);
         syncSplits();
+        if (activeSplit === id) {
+          $(AREAS[def.area][0]).scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
       };
       tile.addEventListener("click", toggle);
       tile.addEventListener("keydown", (e) => {
@@ -532,10 +563,14 @@
     if (prev) prev.disabled = monthOffset >= maxOff;
     if (next) next.disabled = monthOffset === 0;
     if (lbl && rows.length) {
+      // month names only — a 2-digit year suffix read like a day of month
       const f = (r, opts) => new Date(r.ts)
         .toLocaleDateString([], { ...opts, timeZone: dispTZ() }).toUpperCase();
-      lbl.textContent = f(rows[0], { month: "short" }) + " – " +
-        f(rows[rows.length - 1], { month: "short", year: "2-digit" });
+      const a = rows[0], b = rows[rows.length - 1];
+      const ya = f(a, { year: "numeric" }), yb = f(b, { year: "numeric" });
+      lbl.textContent = (ya === yb)
+        ? `${f(a, { month: "short" })} – ${f(b, { month: "short" })} ${yb}`
+        : `${f(a, { month: "short" })} ${ya} – ${f(b, { month: "short" })} ${yb}`;
     }
 
     const labels = rows.map(r => new Date(r.ts).toLocaleDateString([], { month: "short", timeZone: dispTZ() }));
@@ -767,21 +802,25 @@
       $("#sf-rate-export").value = s.rate_export;
       const wrap = $("#sf-gateways");
       wrap.innerHTML = "";
-      for (const gw of s.gateways) {
+      s.gateways.forEach((gw, i) => {
         const row = document.createElement("div");
-        row.className = "sf-row";
+        row.className = "sf-row sf-row-3";
         row.innerHTML =
           '<label class="sf-field"><span class="sf-label"></span>' +
           '<input type="text" class="sf-gw-label" maxlength="24" required /></label>' +
+          '<label class="sf-field"><span class="sf-label sf-chg-label"></span>' +
+          '<input type="text" class="sf-gw-charger" maxlength="24" required /></label>' +
           '<label class="sf-field"><span class="sf-label">CAPACITY kWh</span>' +
           '<input type="number" class="sf-gw-cap" min="0.1" max="1000" step="0.1" required /></label>';
         row.querySelector(".sf-label").textContent = gw.tag.replace("_", " ").toUpperCase() + " LABEL";
+        row.querySelector(".sf-chg-label").textContent = "CHARGER " + (i + 1) + " LABEL";
         const lbl = row.querySelector(".sf-gw-label");
         lbl.value = gw.label;
         lbl.dataset.tag = gw.tag;
+        row.querySelector(".sf-gw-charger").value = gw.charger_label || "CHARGER " + (i + 1);
         row.querySelector(".sf-gw-cap").value = gw.capacity_kwh;
         wrap.appendChild(row);
-      }
+      });
     }
 
     const open = () => { fill(SETTINGS); err.hidden = true; modal.hidden = false; };
@@ -806,6 +845,7 @@
         gateways: $$("#sf-gateways .sf-gw-label").map(inp => ({
           tag: inp.dataset.tag,
           label: inp.value.trim(),
+          charger_label: inp.closest(".sf-row").querySelector(".sf-gw-charger").value.trim(),
           capacity_kwh: Number(inp.closest(".sf-row").querySelector(".sf-gw-cap").value),
         })),
       };

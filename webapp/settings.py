@@ -64,6 +64,7 @@ def env_defaults() -> dict:
         "gateways": [
             {"tag": tag,
              "label": _default_label(tag, i),
+             "charger_label": f"CHARGER {i + 1}",
              "capacity_kwh": config.GATEWAY_CAPACITIES[i]}
             for i, tag in enumerate(config.GATEWAY_TAGS)
         ],
@@ -142,11 +143,13 @@ def _validate_patch(patch: dict, current: dict) -> dict:
                     f"unknown gateway '{tag}' — gateways are fixed by the "
                     f"installation (GATEWAY_TAGS); only labels and capacities "
                     f"can be edited here")
-            extra = set(item) - {"tag", "label", "capacity_kwh"}
+            extra = set(item) - {"tag", "label", "charger_label", "capacity_kwh"}
             if extra:
                 raise ValidationError(f"unknown gateway fields: {', '.join(sorted(extra))}")
             if "label" in item:
                 by_tag[tag]["label"] = _require_str(item, "label", _MAX_LABEL)
+            if "charger_label" in item:
+                by_tag[tag]["charger_label"] = _require_str(item, "charger_label", _MAX_LABEL)
             if "capacity_kwh" in item:
                 by_tag[tag]["capacity_kwh"] = _require_num(
                     item["capacity_kwh"], "capacity_kwh", 0.1, _MAX_CAPACITY)
@@ -188,7 +191,7 @@ class Settings:
                     if isinstance(g, dict)}
         for gw in merged["gateways"]:
             override = saved_gw.get(gw["tag"], {})
-            for key in ("label", "capacity_kwh"):
+            for key in ("label", "charger_label", "capacity_kwh"):
                 if key in override:
                     gw[key] = override[key]
 

@@ -207,6 +207,7 @@ main {
 /* ---------- settings form ---------- */
 .settings-form { display: flex; flex-direction: column; gap: 12px; }
 .sf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sf-row-3 { grid-template-columns: 1fr 1fr 0.7fr; }
 .sf-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .sf-label {
   font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 0.18em;
@@ -326,6 +327,7 @@ main {
 .split-wrap {
   --sw: var(--cyan);
   position: relative;
+  grid-column: 1 / -1;   /* JS parks it inside the tile grid, on its own row */
   border: 1px solid color-mix(in srgb, var(--sw) 45%, transparent);
   border-radius: 12px; padding: 12px;
   background: rgba(0, 0, 0, 0.18);
@@ -335,10 +337,6 @@ main {
   border-left: 8px solid transparent; border-right: 8px solid transparent;
   border-bottom: 8px solid color-mix(in srgb, var(--sw) 45%, transparent);
 }
-/* pull section-level wraps toward the tile row they hang from */
-.sec-body > .split-wrap { margin-top: -10px; }
-.balance .split-wrap { margin-top: 14px; }
-
 /* clickable tiles/stats that expand a connected wrap */
 .tile-click { cursor: pointer; transition: border-color 0.15s; }
 .tile-click:hover { border-color: var(--accent, var(--cyan)); }
