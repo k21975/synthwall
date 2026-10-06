@@ -13,7 +13,8 @@ Data collection is **100% local**: pypowerwall's TEDAPI mode talks to each gatew
 - Solar-vs-usage balance with AHEAD/BEHIND for any period
 - Time ranges: today, 24h, 7 days, month, 30 days, year, **your electric-company billing period**, **lifetime**, or any **custom date range**
 - Per-gateway cards and a combined/per-gateway toggle (hidden automatically on single-gateway systems)
-- **Settings page (⚙)** — site name, per-gateway labels, electricity rates, battery capacities, house timezone, billing-cycle start day, and house-time vs local-time display; saved server-side and applied live, no restarts
+- **Charging section** — a pie per car showing how much of its charging landed in **peak vs off-peak** hours, for any billing period from the dropdown. Peak defaults to 1PM–9PM every day and is editable in settings, with optional weekend/holiday carve-outs for tariffs that have them
+- **Settings page (⚙)** — site name, per-gateway labels, electricity rates, battery capacities, house timezone, billing-cycle start day, peak-hour windows, and house-time vs local-time display; saved server-side and applied live, no restarts
 - Installable as an iOS/Android home-screen app; updates itself when a new version ships
 
 **Grafana dashboards**:
@@ -81,7 +82,7 @@ Guides: [docs/TEDAPI_SETUP.md](docs/TEDAPI_SETUP.md) · [docs/UNRAID_SETUP.md](d
 
 | Change | How |
 |---|---|
-| Site name, gateway labels, rates, capacities, timezone, billing day, time display | **Web app ⚙ settings page** — applied instantly |
+| Site name, gateway labels, rates, capacities, timezone, billing day, time display, peak hours | **Web app ⚙ settings page** — applied instantly |
 | Gateway IP or password | Edit `pypowerwall-<x>.env`, then `docker compose -f powerwall.yml up -d --force-recreate pypowerwall-<x>` (once — see FAQ about rapid recreates) |
 | Add/remove a gateway | Edit `gateways.json` + add/remove `pypowerwall-<x>.env`, run `./setup.sh -g`, then `docker compose -f powerwall.yml up -d` |
 | Ports, data paths, poll interval | `compose.env`, then `up -d` |

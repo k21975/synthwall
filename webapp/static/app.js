@@ -2,11 +2,21 @@
 (function () {
   "use strict";
 
-  const VERSION = "2.4";
+  const VERSION = "3.4";
 
   // Most-recent first. Shown in the version-history modal.
   // Tenth-point releases only; notes consolidated.
   const CHANGELOG = [
+    ["3.4", "A separate home dashboard page can now show live numbers from here. Set DASHBOARD_ORIGINS in compose.env to that page's address to allow it; it can only read. With that set, a HOME button appears beside the settings gear and takes you back to it."],
+    ["3.3", "The HISTORY bill box now also shows your running account BALANCE — the cumulative credit (or amount due). Credits carry forward and amounts due auto-pay once the banked credit runs out, matching how the utility rolls the balance. Pick any billing period to see the balance as of that bill; the current cycle folds in the estimate."],
+    ["3.2", "HISTORY now shows your actual utility bill for a billed cycle (from the amounts on file) and falls back to the estimate — marked with a ~ — only for the in-progress cycle. The most recent billed cycle was added to the period picker. RECORDS gains an ALL USED metric (whole-home consumption, cars included) alongside HOUSE USED (house only)."],
+    ["3.1", "RECORDS now lists the top 5 and bottom 5 (not just one each) and follows the combined / panel-a / panel-b selector at the top. HISTORY shows an estimated bill when you pick a billing period — fixed monthly charge plus net grid priced at your import or export/credit rate — with the fixed charge editable in settings."],
+    ["3.0", "New RECORDS section (best & worst): pick a metric — solar made, house used, or a specific car charged — and a period — day, week, month, or year — to see the most and least ever, with the date it happened. Only complete, already-ended periods count, so a partial current day/month can't set a false record."],
+    ["2.9", "HISTORY's BILLING PERIOD choice now opens a second picker listing your real utility billing cycles (newest first) plus the current estimated period — pick any one to view its totals and charts, not just the current cycle. Billing/custom and other multi-day totals are now sourced from the complete hourly rollup, so they match the meter (earlier they undercounted anything before mid-June). The settings 'billing start day' is now just a fallback used until real bills are on file."],
+    ["2.8", "With ON SOLAR on, each charging donut now breaks into four wedges — peak grid, peak solar, off-peak grid, off-peak solar — with a labelled breakdown under it, so you can see how much of each period's charging came from the grid vs your own solar. Grid keeps the vivid peak/off-peak colors; solar is the lighter tint."],
+    ["2.7", "CHARGING pies now split each car's peak/off-peak totals right beside the donut, and attribute charging to grid vs your own solar/battery per panel. An ON SOLAR toggle in the section header: on (default) counts all charging by time of day — what the utility sees, since it reads the car — while off shows only what was pulled from the grid while charging, so solar charging during peak no longer looks like grid peak use."],
+    ["2.6", "The billing-period dropdown now follows the real utility statement cycles (their start day drifts month to month) instead of a fixed day-of-month, with the in-progress cycle estimated from the typical cycle length. The BILLING PERIOD range lines up with the current real cycle too."],
+    ["2.5", "New CHARGING section: a pie per car splitting its charging into peak vs off-peak kWh, with a billing-period dropdown to page back through cycles. Peak is 1PM–9PM every day, editable in settings along with optional weekend/holiday carve-outs."],
     ["2.4", "Every tile expands a breakdown panel right below it (one at a time): per-panel splits on COMBINED, home split into panels + renamable chargers. MONTHLY gets its own section — 6 months at a time with ◂ ▸ paging. Phone layout polish: side-by-side tiles, one-line headers."],
     ["2.3", "Collapsible LIVE / HISTORY / MONTHLY sections in boxed layout with live tiles up top; clock + refresh next to LIVE. Monthly chart rebuilt on true calendar months (it had frozen). Version history lives in settings; version shown on the gear."],
     ["2.2", "Settings page (gear): site name, panel labels, rates, capacities, timezone — applied live, 1-3 gateways. Ranges: billing period, lifetime, custom dates; house or local time display. Phone app updates itself; chart time labels land on round times."],
@@ -45,9 +55,16 @@
 
   // Query-string for the current range (custom carries explicit bounds).
   function rangeQS() {
-    return range === "custom"
-      ? `range=custom&start=${customStart}&end=${customEnd}`
-      : `range=${range}`;
+    if (range === "custom") return `range=custom&start=${customStart}&end=${customEnd}`;
+    // billing drives off the period chosen in the history picker (known bill or
+    // the estimated current one); before periods load, fall back to the API's
+    // "current cycle to date".
+    if (range === "billing") {
+      const p = histBillPeriod();
+      if (p) return `range=custom&start=${p.start}&end=${p.end}`;
+      return "range=billing";
+    }
+    return `range=${range}`;
   }
 
   // Timezone the UI should render times in: undefined = viewer's browser
@@ -482,6 +499,13 @@
     return (v == null) ? "--" : Number(v).toLocaleString(undefined, { maximumFractionDigits: 1 });
   }
 
+  // "$94.18 credit" / "$126.07 due"; approx → whole dollars with a ~ prefix.
+  function fmtMoney(v, approx) {
+    const amt = (approx ? "~$" : "$") +
+      (approx ? Math.round(Math.abs(v)) : Math.abs(v).toFixed(2));
+    return v < 0 ? amt + " credit" : amt + " due";
+  }
+
   // Headline: solar made vs total home used (incl. car); net = ahead/behind.
   function rangeLabel() {
     if (range === "custom" && customStart && customEnd) {
@@ -490,6 +514,10 @@
       });
       return `${f(customStart)} – ${f(customEnd)}`;
     }
+    if (range === "billing") {
+      const p = histBillPeriod();
+      if (p) return p.label;
+    }
     return RANGE_LABELS[range] || range.toUpperCase();
   }
 
@@ -497,6 +525,42 @@
     $("#bal-range").textContent = rangeLabel();
     $("#bal-solar").textContent = fmt1(t.solar);
     $("#bal-home").textContent = fmt1(t.home);
+
+    // Bill for a selected billing period (whole house only): the real per-cycle
+    // charge if billed, else the estimate; plus the running account balance.
+    const be = $("#bill-est");
+    if (be) {
+      const p = range === "billing" ? histBillPeriod() : null;
+      const actual = !!(p && p.bill != null);
+      const charge = actual ? Number(p.bill)
+        : (t.bill_estimate != null ? Number(t.bill_estimate) : null);
+      const show = range === "billing" && system === "combined" && p && charge != null;
+      be.hidden = !show;
+      if (show) {
+        // running total (Total Due): billed cycle → known; in-progress → carry + estimate
+        const balance = actual
+          ? (p.balance != null ? Number(p.balance) : null)
+          : (p.prior_balance != null ? Number(p.prior_balance) + charge : null);
+        const setRow = (labelSel, valSel, label, v, approx) => {
+          const l = $(labelSel), el = $(valSel);
+          if (l) l.textContent = label;
+          if (el) {
+            el.textContent = v == null ? "--" : fmtMoney(v, approx);
+            el.classList.toggle("credit", v != null && v < 0);
+          }
+        };
+        setRow("#bill-charge-label", "#bill-est-val",
+               actual ? "BILL" : "EST. BILL", charge, !actual);
+        const balRow = $("#bill-bal-val").closest(".bill-row");
+        if (balance == null) {
+          if (balRow) balRow.hidden = true;
+        } else {
+          if (balRow) balRow.hidden = false;
+          setRow("#bill-bal-label", "#bill-bal-val",
+                 actual ? "BALANCE" : "EST. BALANCE", balance, !actual);
+        }
+      }
+    }
 
     const net = Number(t.net || 0);
     const ahead = net >= 0;
@@ -591,6 +655,262 @@
     return Array.from(byMonth.values()).sort((a, b) => a.ts - b.ts);
   }
 
+  // ---------- RECORDS · BEST & WORST ----------
+  // Most / least of a metric (solar, house, or a car) over day/week/month/year.
+  let recMetric = localStorage.getItem("recMetric") || "solar";
+  let recPeriod = localStorage.getItem("recPeriod") || "day";
+
+  // Metric dropdown is data-driven: solar, house, then one option per charger.
+  function fillRecMetric() {
+    const sel = $("#rec-metric");
+    if (!sel || !SETTINGS) return;
+    const opts = [["solar", "SOLAR MADE"], ["house", "HOUSE USED"],
+                  ["home", "ALL USED"]];
+    for (const gw of SETTINGS.gateways) {
+      opts.push([gw.tag, ((gw.charger_label || gw.tag) + " CHARGED").toUpperCase()]);
+    }
+    if (!opts.some(([v]) => v === recMetric)) recMetric = "solar";
+    sel.innerHTML = opts.map(([v, l]) =>
+      `<option value="${v}">${l}</option>`).join("");
+    sel.value = recMetric;
+  }
+
+  function metricPhrase(metric) {
+    if (metric === "solar") return "SOLAR MADE";
+    if (metric === "house") return "HOUSE USED";
+    if (metric === "home") return "ALL USED";
+    const gw = (SETTINGS && SETTINGS.gateways || []).find(g => g.tag === metric);
+    return (((gw && gw.charger_label) || metric) + " CHARGED").toUpperCase();
+  }
+
+  async function refreshRecords() {
+    if (!$("#rec-body")) return;
+    try {
+      renderRecords(await getJSON(
+        `/api/records?metric=${recMetric}&period=${recPeriod}&system=${system}`));
+    } catch (e) { console.error(e); }
+  }
+
+  function renderRecords(d) {
+    const perWord = { day: "DAY", week: "WEEK", month: "MONTH", year: "YEAR" }[d.period];
+    const title = $("#rec-title");
+    if (title) title.textContent = `${metricPhrase(d.metric)} · PER ${perWord}`;
+    const li = r =>
+      `<li><b>${fmt1(r.value)}</b><i>kWh</i><span>${r.label}</span></li>`;
+    const top = $("#rec-top"), bottom = $("#rec-bottom");
+    if (top) top.innerHTML = (d.top && d.top.length)
+      ? d.top.map(li).join("") : '<li class="rec-empty">—</li>';
+    if (bottom) {
+      // with fewer than ~10 periods the top list already covers them all
+      bottom.innerHTML = (d.bottom && d.bottom.length)
+        ? d.bottom.map(li).join("")
+        : (d.count ? `<li class="rec-empty">all ${d.count} shown at left</li>`
+                   : '<li class="rec-empty">—</li>');
+    }
+    const note = $("#rec-note");
+    if (note) {
+      note.textContent = d.count
+        ? `Ranked over ${d.count} complete ${perWord.toLowerCase()}${d.count === 1 ? "" : "s"}. Partial and in-progress periods are excluded.`
+        : `Not enough complete ${perWord.toLowerCase()}s of data yet.`;
+    }
+  }
+
+  function bindRecords() {
+    const m = $("#rec-metric"), p = $("#rec-period");
+    if (p) p.value = recPeriod;
+    if (m) m.addEventListener("change", () => {
+      recMetric = m.value; localStorage.setItem("recMetric", recMetric);
+      refreshRecords();
+    });
+    if (p) p.addEventListener("change", () => {
+      recPeriod = p.value; localStorage.setItem("recPeriod", recPeriod);
+      refreshRecords();
+    });
+  }
+
+  // ---------- CHARGING · PEAK vs OFF-PEAK ----------
+  // One pie per car showing how much of its charging landed in the utility's
+  // peak window, for a billing period picked from the dropdown. The window
+  // itself lives in settings (1PM-9PM daily by default); hours come back
+  // labelled by the server in the house timezone.
+  let billPeriods = [];
+  let billKey = localStorage.getItem("billKey") || "";
+  let histBillKey = localStorage.getItem("histBillKey") || "";
+  let lastTou = null;
+
+  // Billing period selected in the HISTORY range picker (defaults to current).
+  function histBillPeriod() {
+    if (!billPeriods.length) return null;
+    return billPeriods.find(p => p.key === histBillKey) || billPeriods[0];
+  }
+
+  function fillHistBillSelect() {
+    const sel = $("#hist-bill-select");
+    if (!sel) return;
+    sel.innerHTML = billPeriods
+      .map(p => `<option value="${p.key}">${p.label}</option>`).join("");
+    const p = histBillPeriod();
+    if (p) { histBillKey = p.key; sel.value = p.key; }
+  }
+  // ON SOLAR toggle: on (default) counts solar/battery charging in the pies by
+  // time of day; off shows only what was pulled from the grid while charging.
+  let touSolar = localStorage.getItem("touSolar") !== "0";
+
+  async function refreshBillingPeriods() {
+    try {
+      const data = await getJSON("/api/billing_periods");
+      billPeriods = data.periods || [];
+      const sel = $("#bill-select");
+      sel.innerHTML = billPeriods
+        .map(p => `<option value="${p.key}">${p.label}</option>`).join("");
+      if (!billPeriods.some(p => p.key === billKey)) {
+        billKey = billPeriods.length ? billPeriods[0].key : "";
+      }
+      sel.value = billKey;
+      fillHistBillSelect();   // keep the HISTORY picker in sync
+    } catch (e) { console.error(e); }
+  }
+
+  function billPeriod() {
+    return billPeriods.find(p => p.key === billKey);
+  }
+
+  async function refreshTou() {
+    const p = billPeriod();
+    if (!p) { renderTou(null); return; }
+    try {
+      lastTou = await getJSON(
+        `/api/tou?range=custom&start=${p.start}&end=${p.end}&system=${system}`);
+      renderTou(lastTou);
+    } catch (e) { console.error(e); }
+  }
+
+  // 9 -> "9AM", 18 -> "6PM", 24 -> "MIDNIGHT"
+  function hourLabel(h) {
+    if (h === 0 || h === 24) return "MIDNIGHT";
+    if (h === 12) return "NOON";
+    return (h % 12 || 12) + (h < 12 ? "AM" : "PM");
+  }
+
+  // "EVERY DAY" unless the tariff carves weekends and/or holidays out
+  function daysLabel(cfg) {
+    if (cfg.weekend_offpeak && cfg.holiday_offpeak) return "WEEKDAYS EXCEPT HOLIDAYS";
+    if (cfg.weekend_offpeak) return "WEEKDAYS";
+    if (cfg.holiday_offpeak) return "EVERY DAY EXCEPT HOLIDAYS";
+    return "EVERY DAY";
+  }
+
+  function renderTou(data) {
+    const wrap = $("#tou-pies");
+    if (!wrap) return;
+    const gws = SETTINGS ? splitGateways() : [];
+    const chargers = (data && data.chargers) || {};
+
+    // rebuild the card set only when the charger list itself changes
+    const want = gws.map(g => g.tag).join("|");
+    if (wrap.dataset.keys !== want) {
+      wrap.dataset.keys = want;
+      wrap.innerHTML = "";
+      for (const gw of gws) {
+        const card = document.createElement("div");
+        card.className = "card chart-card pie-card";
+        card.id = "tou-" + gw.tag;
+        card.innerHTML =
+          '<div class="card-head"><h2></h2></div>' +
+          '<div class="pie-totals">' +
+          '<span class="pt peak"><i>PEAK</i><b></b></span>' +
+          '<span class="pt off"><i>OFF-PEAK</i><b></b></span>' +
+          "</div>" +
+          "<canvas></canvas>" +
+          '<div class="pie-legend"></div>';
+        wrap.appendChild(card);
+      }
+    }
+
+    // lighter tints for the solar (on-site) share of each period; grid keeps
+    // the vivid peak=magenta / off-peak=green so grid-only mode reads the same
+    const SOLAR_PEAK = "#ff9dcb", SOLAR_OFF = "#a9ffcf";
+
+    for (const gw of gws) {
+      const card = document.getElementById("tou-" + gw.tag);
+      if (!card) continue;
+      card.querySelector("h2").textContent = chargerLabel(gw);
+      const c = chargers[gw.tag] ||
+        { peak: 0, off_peak: 0, total: 0, peak_grid: 0, off_peak_grid: 0, grid_total: 0 };
+      const peakSolar = Math.max(0, c.peak - c.peak_grid);
+      const offSolar = Math.max(0, c.off_peak - c.off_peak_grid);
+      // ON SOLAR: 4 slices (grid + solar per period). Off: grid-sourced only.
+      const totalV = touSolar ? c.total : c.grid_total;
+      const slices = touSolar ? [
+        { name: "PEAK · GRID", color: C.grid, value: c.peak_grid },
+        { name: "PEAK · SOLAR", color: SOLAR_PEAK, value: peakSolar },
+        { name: "OFF-PEAK · GRID", color: C.green, value: c.off_peak_grid },
+        { name: "OFF-PEAK · SOLAR", color: SOLAR_OFF, value: offSolar },
+      ] : [
+        { name: "PEAK", color: C.grid, value: c.peak_grid },
+        { name: "OFF-PEAK", color: C.green, value: c.off_peak_grid },
+      ];
+
+      NeonChart.pie(card.querySelector("canvas"), {
+        slices,
+        center: { val: fmt1(totalV), unit: "kWh",
+                  sub: touSolar ? "CHARGED" : "FROM GRID" },
+        empty: touSolar ? "NO CHARGING" : "NO GRID CHARGING",
+      });
+
+      // headline peak/off-peak totals just outside the pie (sums of the slices)
+      const pct = v => totalV > 0 ? ` · ${Math.round((v / totalV) * 100)}%` : "";
+      const peakV = touSolar ? c.peak : c.peak_grid;
+      const offV = touSolar ? c.off_peak : c.off_peak_grid;
+      card.querySelector(".pt.peak b").textContent = `${fmt1(peakV)} kWh${pct(peakV)}`;
+      card.querySelector(".pt.off b").textContent = `${fmt1(offV)} kWh${pct(offV)}`;
+
+      // per-slice breakdown so the (up to 4) wedges read without hovering
+      card.querySelector(".pie-legend").innerHTML = slices.map(s =>
+        `<span style="--c:${s.color}"><em>${s.name}</em>` +
+        `<b>${fmt1(s.value)} kWh${pct(s.value)}</b></span>`).join("");
+    }
+
+    const note = $("#tou-note");
+    const cfg = data && data.tou;
+    if (!note) return;
+    if (!cfg) { note.textContent = "—"; return; }
+    const peak = cfg.peak || [13, 21];
+    const p = billPeriod();
+    const source = touSolar
+      ? "All charging is counted by time of day — what the utility sees (it reads "
+        + "charging from the car) — with each period split into grid vs your own "
+        + "solar/battery (per panel). "
+      : "Showing only energy pulled from the grid while charging, per panel; "
+        + "solar/battery charging is excluded. ";
+    note.innerHTML =
+      `PEAK · <b>${hourLabel(peak[0])}–${hourLabel(peak[1])}</b> ` +
+      `${daysLabel(cfg)} — everything else off-peak. ` +
+      `Hours in ${data.timezone}` + (p ? ` · ${p.label}` : "") + ". " +
+      source + "Charging is estimated from house load above the baseline.";
+  }
+
+  function bindBillingPicker() {
+    const sel = $("#bill-select");
+    if (!sel) return;
+    sel.addEventListener("change", () => {
+      billKey = sel.value;
+      localStorage.setItem("billKey", billKey);
+      refreshTou();
+    });
+  }
+
+  function bindSolarToggle() {
+    const cb = $("#tou-solar");
+    if (!cb) return;
+    cb.checked = touSolar;
+    cb.addEventListener("change", () => {
+      touSolar = cb.checked;
+      localStorage.setItem("touSolar", touSolar ? "1" : "0");
+      renderTou(lastTou);   // both modes already in the payload — no refetch
+    });
+  }
+
   // ---------- settings-driven UI ----------
   // Branding, the system toggle, and per-gateway cards all come from
   // /api/settings; re-run after every settings save.
@@ -638,6 +958,7 @@
       }
       card.querySelector("h2").textContent = gw.label;
     }
+    fillRecMetric();   // metric dropdown includes one option per charger
     syncSplits();   // split availability depends on gateway count
   }
 
@@ -646,6 +967,8 @@
     const sel = $("#range-select");
     const custom = $("#custom-range");
     const startIn = $("#custom-start"), endIn = $("#custom-end");
+
+    const histBill = $("#hist-bill-range");
 
     sel.addEventListener("change", () => {
       if (sel.value === "custom") {
@@ -656,12 +979,28 @@
           startIn.value = a.toISOString().slice(0, 10);
           endIn.value = now.toISOString().slice(0, 10);
         }
+        if (histBill) histBill.hidden = true;
         custom.hidden = false;
         return;   // wait for GO — don't refresh with stale bounds
       }
       custom.hidden = true;
       range = sel.value;
       localStorage.setItem("range", range);
+      if (sel.value === "billing") {
+        // reveal the period picker; load periods first if we don't have them
+        if (histBill) histBill.hidden = false;
+        const go = () => { fillHistBillSelect(); refreshHistory(); refreshTotals(); };
+        if (billPeriods.length) go(); else refreshBillingPeriods().then(go);
+        return;
+      }
+      if (histBill) histBill.hidden = true;
+      refreshHistory(); refreshTotals();
+    });
+
+    const hbSel = $("#hist-bill-select");
+    if (hbSel) hbSel.addEventListener("change", () => {
+      histBillKey = hbSel.value;
+      localStorage.setItem("histBillKey", histBillKey);
       refreshHistory(); refreshTotals();
     });
 
@@ -679,6 +1018,8 @@
     if (saved && saved !== "custom" && sel.querySelector(`option[value="${saved}"]`)) {
       sel.value = saved;
       range = saved;
+      // reveal the billing picker; refreshBillingPeriods (init) fills it
+      if (saved === "billing" && histBill) histBill.hidden = false;
     }
 
     // system buttons are re-rendered on settings changes — delegate
@@ -690,6 +1031,8 @@
       system = b.dataset.sys;
       syncSplits();   // combined-only splits close/hide off COMBINED
       refreshLive(); refreshHistory(); refreshTotals(); refreshMonthly();
+      refreshTou();   // pies scope to the selected panel's charger
+      refreshRecords();   // records follow the combined/panel selection too
     });
   }
 
@@ -698,6 +1041,7 @@
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
       refreshHistory(); refreshMonthly();
+      renderTou(lastTou);   // canvases redraw at the new size
       syncSplits();   // realign the connector notch
     }, 200);
   });
@@ -711,7 +1055,9 @@
     if (masterTimer) { clearInterval(masterTimer); masterTimer = null; }
     if (monthlyTimer) { clearInterval(monthlyTimer); monthlyTimer = null; }
     if (ms > 0) {
-      masterTimer = setInterval(() => { refreshLive(); refreshTotals(); refreshHistory(); }, ms);
+      masterTimer = setInterval(() => {
+        refreshLive(); refreshTotals(); refreshHistory(); refreshTou();
+      }, ms);
       monthlyTimer = setInterval(refreshMonthly, Math.max(ms, 600000));
     }
   }
@@ -775,6 +1121,13 @@
       $("#sf-billing-day").value = s.billing_day || 1;
       $("#sf-rate-import").value = s.rate_import;
       $("#sf-rate-export").value = s.rate_export;
+      $("#sf-fixed-charge").value = s.fixed_charge;
+      const tou = s.tou || {};
+      const peak = tou.peak || [13, 21];
+      $("#sf-peak-start").value = peak[0];
+      $("#sf-peak-end").value = peak[1];
+      $("#sf-weekend-offpeak").checked = !!tou.weekend_offpeak;
+      $("#sf-holiday-offpeak").checked = !!tou.holiday_offpeak;
       const wrap = $("#sf-gateways");
       wrap.innerHTML = "";
       const phd = document.createElement("div");
@@ -839,6 +1192,12 @@
         billing_day: Number($("#sf-billing-day").value),
         rate_import: Number($("#sf-rate-import").value),
         rate_export: Number($("#sf-rate-export").value),
+        fixed_charge: Number($("#sf-fixed-charge").value),
+        tou: {
+          peak: [Number($("#sf-peak-start").value), Number($("#sf-peak-end").value)],
+          weekend_offpeak: $("#sf-weekend-offpeak").checked,
+          holiday_offpeak: $("#sf-holiday-offpeak").checked,
+        },
         gateways: $$("#sf-gateways .sf-gw-label").map(inp => {
           const chg = $$("#sf-gateways .sf-gw-charger")
             .find(c => c.dataset.tag === inp.dataset.tag);
@@ -862,6 +1221,9 @@
         SETTINGS = body.settings;
         applySettings();
         refreshLive(); refreshHistory(); refreshTotals(); refreshMonthly();
+        refreshRecords();
+        // billing day and peak windows both feed the charging pies
+        refreshBillingPeriods().then(refreshTou);
         hide();
       } catch (ex) {
         err.textContent = ex.message;
@@ -901,6 +1263,8 @@
       refreshHistory(); refreshTotals();
     });
     bindCollapse("#monthly-toggle", "#monthly-body", "monthlyOpen", true, renderMonthly);
+    bindCollapse("#rec-toggle", "#rec-body", "recOpen", true, refreshRecords);
+    bindCollapse("#tou-toggle", "#tou-body", "touOpen", true, refreshTou);
   }
 
   // ---------- version history modal ----------
@@ -927,12 +1291,19 @@
     bindSegments();
     bindSections();
     bindMonthlyPager();
+    bindBillingPicker();
+    bindSolarToggle();
+    bindRecords();
     bindSettings();
     tick(); setInterval(tick, 1000);
     try {
       const data = await getJSON("/api/settings");
       SETTINGS = data.settings;
       DEFAULTS = data.defaults;
+      if (data.home_url) {
+        $("#home-btn").href = data.home_url;
+        $("#home-btn").hidden = false;
+      }
     } catch (e) {
       console.error("settings load failed; dashboard runs with defaults", e);
       SETTINGS = { site_name: "POWERWALL", tagline: "POWERWALL", gateways: [] };
@@ -941,6 +1312,11 @@
     applySettings();
     bindSplits();
     refreshLive(); refreshHistory(); refreshTotals(); refreshMonthly();
+    refreshRecords();
+    await refreshBillingPeriods(); refreshTou();
+    // if HISTORY restored to a specific billing period, re-query now that the
+    // period bounds are known (the first pass fell back to the current cycle)
+    if (range === "billing") { refreshHistory(); refreshTotals(); }
     bindRefreshRate();   // starts the master auto-refresh at the saved/selected rate
     bindSelfUpdate();
   }

@@ -19,6 +19,7 @@ from typing import Optional
 from zoneinfo import ZoneInfo
 
 import config
+import tou
 
 log = logging.getLogger("webapp.settings")
 
@@ -61,6 +62,10 @@ def env_defaults() -> dict:
         "billing_day": 1,
         "rate_import": config.RATE_IMPORT,
         "rate_export": config.RATE_EXPORT,
+        # fixed monthly utility charge ($) for the estimated bill
+        "fixed_charge": config.FIXED_CHARGE,
+        # peak/off-peak window for the charging split (1PM-9PM daily)
+        "tou": json.loads(json.dumps(tou.DEFAULTS)),
         "gateways": [
             {"tag": tag,
              "label": _default_label(tag, i),
@@ -92,13 +97,46 @@ def _require_num(value, key: str, lo: float, hi: float) -> float:
     return v
 
 
+def _peak_window(value, key: str) -> list:
+    """[start_hour, end_hour) for a peak window — whole hours, start before end."""
+    if not isinstance(value, (list, tuple)) or len(value) != 2:
+        raise ValidationError(f"{key} must be a [start hour, end hour] pair")
+    hours = []
+    for v in value:
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or v != int(v):
+            raise ValidationError(f"{key} hours must be whole numbers")
+        hours.append(int(v))
+    if not 0 <= hours[0] < hours[1] <= 24:
+        raise ValidationError(
+            f"{key} must be a start hour 0-23 before an end hour 1-24")
+    return hours
+
+
+def _validate_tou(value, current: dict) -> dict:
+    """Validate a partial time-of-use config against the current one."""
+    if not isinstance(value, dict):
+        raise ValidationError("tou must be an object")
+    extra = set(value) - set(tou.DEFAULTS)
+    if extra:
+        raise ValidationError(f"unknown tou fields: {', '.join(sorted(extra))}")
+    merged = json.loads(json.dumps(current))
+    if "peak" in value:
+        merged["peak"] = _peak_window(value["peak"], "peak")
+    for key in ("weekend_offpeak", "holiday_offpeak"):
+        if key in value:
+            if not isinstance(value[key], bool):
+                raise ValidationError(f"{key} must be true or false")
+            merged[key] = value[key]
+    return merged
+
+
 def _validate_patch(patch: dict, current: dict) -> dict:
     """Validate a partial update against the current settings; return the merged dict."""
     if not isinstance(patch, dict):
         raise ValidationError("settings payload must be an object")
 
     allowed = {"site_name", "tagline", "timezone", "time_display", "billing_day",
-               "rate_import", "rate_export", "gateways"}
+               "rate_import", "rate_export", "fixed_charge", "tou", "gateways"}
     unknown = set(patch) - allowed
     if unknown:
         raise ValidationError(f"unknown settings: {', '.join(sorted(unknown))}")
@@ -129,6 +167,10 @@ def _validate_patch(patch: dict, current: dict) -> dict:
         merged["rate_import"] = _require_num(patch["rate_import"], "rate_import", 0.0, _MAX_RATE)
     if "rate_export" in patch:
         merged["rate_export"] = _require_num(patch["rate_export"], "rate_export", 0.0, _MAX_RATE)
+    if "fixed_charge" in patch:
+        merged["fixed_charge"] = _require_num(patch["fixed_charge"], "fixed_charge", 0.0, 1000.0)
+    if "tou" in patch:
+        merged["tou"] = _validate_tou(patch["tou"], merged.get("tou", tou.DEFAULTS))
 
     if "gateways" in patch:
         if not isinstance(patch["gateways"], list):
@@ -182,9 +224,16 @@ class Settings:
 
         merged = defaults
         for key in ("site_name", "tagline", "timezone", "time_display",
-                    "billing_day", "rate_import", "rate_export"):
+                    "billing_day", "rate_import", "rate_export", "fixed_charge"):
             if key in saved:
                 merged[key] = saved[key]
+        # tou is nested and merged key-by-key, so a file saved before a field
+        # existed still picks the default up, and keys that no longer exist in
+        # the defaults (an older schema) are dropped rather than resurrected.
+        if isinstance(saved.get("tou"), dict):
+            for key, val in saved["tou"].items():
+                if key in merged["tou"]:
+                    merged["tou"][key] = val
         # Per-gateway overrides apply by tag; tags no longer configured are
         # dropped (a stale file must not resurrect a removed gateway).
         saved_gw = {g.get("tag"): g for g in saved.get("gateways", [])
@@ -242,7 +291,19 @@ class Settings:
         with self._lock:
             return float(self._data["rate_export"])
 
+    def fixed_charge(self) -> float:
+        with self._lock:
+            return float(self._data.get("fixed_charge", config.FIXED_CHARGE))
+
     def billing_day(self) -> int:
         with self._lock:
             day = self._data.get("billing_day", 1)
             return day if isinstance(day, int) and 1 <= day <= 28 else 1
+
+    def tou(self) -> dict:
+        """Peak-window config for the charging split; always fully populated."""
+        with self._lock:
+            cfg = self._data.get("tou")
+            saved = cfg if isinstance(cfg, dict) else {}
+            # deep copy: the defaults hold lists, and callers hand this to JSON
+            return json.loads(json.dumps({**tou.DEFAULTS, **saved}))

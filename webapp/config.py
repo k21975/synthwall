@@ -28,6 +28,8 @@ INFLUXDB_DATABASE = os.environ.get("INFLUXDB_DATABASE", "powerwall")
 # These are env defaults; the settings page (settings.py) can override them live.
 RATE_IMPORT = _float("RATE_IMPORT", 0.25)
 RATE_EXPORT = _float("RATE_EXPORT", 0.08)
+# Fixed monthly charge ($) added to the estimated bill (utility customer charge).
+FIXED_CHARGE = _float("FIXED_CHARGE", 10.0)
 
 # Gateway system tags in display order. Infrastructure-owned (written by
 # setup.sh to match the generated telegraf/compose configs) — the settings
@@ -57,3 +59,12 @@ SETTINGS_PATH = os.environ.get("SETTINGS_PATH", "/data/settings.json")
 
 # Port the uvicorn server listens on inside the container.
 WEBAPP_PORT = _int("WEBAPP_PORT", 8050)
+
+# Origins whose pages may read /api/* from a browser (CORS), comma-separated,
+# e.g. "https://home.example.com" for a separate home dashboard page. Empty =
+# no cross-origin access, the default.
+DASHBOARD_ORIGINS = [o.strip().rstrip("/") for o in
+                     os.environ.get("DASHBOARD_ORIGINS", "").split(",")
+                     if o.strip()]
+# Where the header's HOME button links: the first origin above. Empty = no button.
+HOME_URL = DASHBOARD_ORIGINS[0] if DASHBOARD_ORIGINS else ""

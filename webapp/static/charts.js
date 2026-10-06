@@ -259,6 +259,74 @@
     }
   }
 
+  /* opts: { slices:[{name,color,value}], center?:{val,unit,sub}, empty?:string }
+     Neon donut: glowing segments separated by hairline gaps, share labels on
+     any segment with room for them, and a value stack in the hole. */
+  function pie(canvas, opts) {
+    const { ctx, w, h } = dpiSetup(canvas);
+    ctx.clearRect(0, 0, w, h);
+    const slices = (opts.slices || []).filter(s => s.value > 0);
+    const total = slices.reduce((a, s) => a + s.value, 0);
+    const cx = w / 2, cy = h / 2;
+    const r = Math.max(10, Math.min(w, h) / 2 - 10);
+    const ir = r * 0.6;
+
+    if (!(total > 0)) {
+      ctx.strokeStyle = GRIDC;
+      ctx.lineWidth = r - ir;
+      ctx.beginPath();
+      ctx.arc(cx, cy, (r + ir) / 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(160,150,210,0.8)";
+      ctx.font = "11px " + FONT;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(opts.empty || "NO DATA", cx, cy);
+      return;
+    }
+
+    let a0 = -Math.PI / 2;
+    for (const s of slices) {
+      const a1 = a0 + (s.value / total) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, a0, a1);
+      ctx.arc(cx, cy, ir, a1, a0, true);
+      ctx.closePath();
+      ctx.fillStyle = s.color;
+      ctx.shadowColor = s.color; ctx.shadowBlur = 12;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // hairline gap in the page background so segments read as separate
+      if (slices.length > 1) {
+        ctx.strokeStyle = "rgba(7,6,15,0.85)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      const share = (s.value / total) * 100;
+      if (share >= 8) {
+        const mid = (a0 + a1) / 2, rr = (r + ir) / 2;
+        ctx.fillStyle = "#07060f";
+        ctx.font = "700 12px " + FONT;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(Math.round(share) + "%", cx + Math.cos(mid) * rr,
+                     cy + Math.sin(mid) * rr);
+      }
+      a0 = a1;
+    }
+
+    if (opts.center) {
+      const { val, unit, sub } = opts.center;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = "rgba(232,236,255,0.95)";
+      ctx.font = "700 " + Math.max(13, Math.round(ir * 0.42)) + "px " + FONT;
+      ctx.fillText(String(val), cx, cy + 2);
+      ctx.fillStyle = "rgba(160,150,210,0.85)";
+      ctx.font = "9px " + FONT;
+      if (unit) ctx.fillText(unit, cx, cy + 15);
+      if (sub) ctx.fillText(sub, cx, cy - ir * 0.42);
+    }
+  }
+
   function roundRect(ctx, x, y, w, h, r) {
     r = Math.min(r, w / 2, Math.abs(h) / 2);
     ctx.beginPath();
@@ -279,5 +347,5 @@
     return `rgba(${r},${g},${b},${a})`;
   }
 
-  global.NeonChart = { line, bars };
+  global.NeonChart = { line, bars, pie };
 })(window);

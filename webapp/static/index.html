@@ -40,7 +40,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=27" />
+  <link rel="stylesheet" href="style.css?v=36" />
 </head>
 <body>
   <!-- synthwave backdrop layers -->
@@ -55,7 +55,11 @@
       <div class="kicker" id="site-kicker">POWERWALL</div>
       <h1 class="title" id="site-title">POWERWALL</h1>
     </div>
-    <button id="settings-btn" class="settings-btn" type="button" title="Settings">⚙ <span class="settings-ver" id="settings-ver">v—</span></button>
+    <div class="topbar-btns">
+      <!-- shown only when /api/settings reports a home_url (DASHBOARD_ORIGINS) -->
+      <a id="home-btn" class="settings-btn home-btn" href="#" title="Back to the home dashboard" hidden>‹ <span class="settings-ver">HOME</span></a>
+      <button id="settings-btn" class="settings-btn" type="button" title="Settings">⚙ <span class="settings-ver" id="settings-ver">v—</span></button>
+    </div>
   </header>
 
   <main>
@@ -144,6 +148,11 @@
               <option value="custom">CUSTOM…</option>
             </select>
           </label>
+          <span id="hist-bill-range" class="range-pick bill-pick" hidden
+                title="Known billing periods from your utility bills (newest first), plus the current estimated period. Tap to choose one.">
+            <span class="range-ico">▤</span>
+            <select id="hist-bill-select" aria-label="Billing period"></select>
+          </span>
           <span id="custom-range" class="custom-range" hidden>
             <input type="date" id="custom-start" aria-label="Start date" />
             <span class="custom-sep">→</span>
@@ -156,6 +165,17 @@
         <!-- Headline: solar made vs total home used (incl. car) over the period -->
         <section class="balance card" id="balance">
           <div class="bal-head"><span id="bal-range">24H</span></div>
+          <div class="bill-est" id="bill-est" hidden
+               title="BILL is the charge for the selected cycle (actual if billed, else an estimate: fixed charge + net grid priced at your import or export/credit rate). BALANCE is the running account total — credits carry forward and amounts due auto-pay once the credit runs out.">
+            <div class="bill-row">
+              <span class="bill-est-label" id="bill-charge-label">EST. BILL</span>
+              <span class="bill-est-val" id="bill-est-val">--</span>
+            </div>
+            <div class="bill-row bill-row-bal">
+              <span class="bill-est-label" id="bill-bal-label">BALANCE</span>
+              <span class="bill-est-val" id="bill-bal-val">--</span>
+            </div>
+          </div>
           <div class="bal-cols">
             <div class="bal-metric" id="bal-solar-box">
               <div class="bal-label">SOLAR MADE</div>
@@ -238,6 +258,64 @@
         </section>
       </div>
     </section>
+
+    <!-- RECORDS — best & worst: most/least solar, house, or a car per day/week/month/year -->
+    <section class="sec">
+      <div class="sec-head">
+        <button type="button" class="sec-toggle" id="rec-toggle" aria-expanded="true"><span class="sec-arrow">▾</span>RECORDS</button>
+        <div class="sec-extras">
+          <label class="range-pick" title="What to rank">
+            <span class="range-ico">◆</span>
+            <select id="rec-metric" aria-label="Metric"></select>
+          </label>
+          <label class="range-pick" title="Period length">
+            <span class="range-ico">◷</span>
+            <select id="rec-period" aria-label="Period">
+              <option value="day">PER DAY</option>
+              <option value="week">PER WEEK</option>
+              <option value="month">PER MONTH</option>
+              <option value="year">PER YEAR</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="sec-body" id="rec-body">
+        <div class="rec-title" id="rec-title">—</div>
+        <section class="recs">
+          <div class="card rec-card best">
+            <div class="rec-cap">TOP 5</div>
+            <ol class="rec-list" id="rec-top"></ol>
+          </div>
+          <div class="card rec-card worst">
+            <div class="rec-cap">BOTTOM 5</div>
+            <ol class="rec-list" id="rec-bottom"></ol>
+          </div>
+        </section>
+        <div class="rec-note" id="rec-note"></div>
+      </div>
+    </section>
+
+    <!-- CHARGING — one pie per car: peak vs off-peak kWh for a billing period -->
+    <section class="sec">
+      <div class="sec-head">
+        <button type="button" class="sec-toggle" id="tou-toggle" aria-expanded="true"><span class="sec-arrow">▾</span>CHARGING</button>
+        <div class="sec-extras">
+          <label class="solar-toggle" title="On: count charging powered by your own solar/battery (added to peak or off-peak by time of day). Off: show only what was pulled from the grid while charging.">
+            <input type="checkbox" id="tou-solar" checked />
+            <span class="solar-track"><span class="solar-thumb"></span></span>
+            <span class="solar-text">ON SOLAR</span>
+          </label>
+          <label class="range-pick bill-pick" title="Billing period">
+            <span class="range-ico">▤</span>
+            <select id="bill-select" aria-label="Billing period"></select>
+          </label>
+        </div>
+      </div>
+      <div class="sec-body" id="tou-body">
+        <section class="charts pies" id="tou-pies"></section>
+        <div class="tou-note" id="tou-note">—</div>
+      </div>
+    </section>
   </main>
 
   <footer class="footer">
@@ -285,9 +363,41 @@
           </label>
         </div>
         <label class="sf-field">
-          <span class="sf-label">BILLING CYCLE START DAY (1-28)</span>
-          <input type="number" id="sf-billing-day" min="1" max="28" step="1" required />
+          <span class="sf-label">MONTHLY FIXED CHARGE $</span>
+          <input type="number" id="sf-fixed-charge" min="0" max="1000" step="0.01" required />
+          <span class="sf-hint">Utility customer charge added to the estimated bill shown in HISTORY for a billing period.</span>
         </label>
+        <label class="sf-field">
+          <span class="sf-label">BILLING CYCLE START DAY (1-28) · FALLBACK</span>
+          <input type="number" id="sf-billing-day" min="1" max="28" step="1" required />
+          <span class="sf-hint">Billing periods come from your real utility bills (their start day drifts month to month). This fixed day is only used until bills are on file. The HISTORY and CHARGING period pickers list the known cycles plus the current estimated one.</span>
+        </label>
+        <div class="sf-heading">PEAK HOURS · TIME OF USE</div>
+        <div class="sf-row">
+          <label class="sf-field">
+            <span class="sf-label">PEAK FROM (HOUR)</span>
+            <input type="number" id="sf-peak-start" min="0" max="23" step="1" required />
+          </label>
+          <label class="sf-field">
+            <span class="sf-label">PEAK TO (HOUR)</span>
+            <input type="number" id="sf-peak-end" min="1" max="24" step="1" required />
+          </label>
+        </div>
+        <div class="sf-checks">
+          <label class="sf-check">
+            <input type="checkbox" id="sf-weekend-offpeak" />
+            <span>WEEKENDS ALWAYS OFF-PEAK</span>
+          </label>
+          <label class="sf-check">
+            <input type="checkbox" id="sf-holiday-offpeak" />
+            <span>HOLIDAYS ALWAYS OFF-PEAK</span>
+          </label>
+        </div>
+        <div class="sf-hint">
+          Whole hours in house time, e.g. 13 → 21 for a 1PM–9PM peak. The
+          default peak applies every day; tick a box only if your tariff
+          exempts weekends or holidays.
+        </div>
         <div id="sf-gateways"><!-- one row per gateway, rendered by JS --></div>
         <div class="sf-error" id="sf-error" hidden></div>
         <div class="sf-actions">
@@ -312,7 +422,7 @@
     </div>
   </div>
 
-  <script src="charts.js?v=11"></script>
-  <script src="app.js?v=33"></script>
+  <script src="charts.js?v=12"></script>
+  <script src="app.js?v=46"></script>
 </body>
 </html>
